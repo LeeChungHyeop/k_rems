@@ -1,0 +1,196 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* KHNP 신재생통합관리시스템 디자인 시스템 - 모든 색상은 HSL */
+
+@layer base {
+  :root {
+    --background: 210 25% 97%;
+    --foreground: 212 60% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 212 60% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 212 60% 12%;
+
+    /* KHNP Navy #003A70 */
+    --primary: 210 100% 22%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 205 100% 35%;
+
+    /* KHNP Blue #0072CE */
+    --secondary: 207 100% 40%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 25% 94%;
+    --muted-foreground: 212 20% 40%;
+
+    /* Sky accent #00A3E0 */
+    --accent: 197 100% 44%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --warning: 38 95% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --success: 145 65% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 210 25% 88%;
+    --input: 210 25% 90%;
+    --ring: 207 100% 40%;
+
+    --radius: 0.5rem;
+
+    /* 발전원별 색상 */
+    --energy-solar: 38 95% 55%;
+    --energy-wind: 197 85% 50%;
+    --energy-hydro: 207 100% 40%;
+    --energy-fuelcell: 280 60% 55%;
+    --energy-ess: 145 65% 45%;
+
+    /* 그라데이션 / 그림자 */
+    --gradient-primary: linear-gradient(135deg, hsl(210 100% 22%), hsl(207 100% 40%));
+    --gradient-tv: linear-gradient(180deg, hsl(212 80% 8%), hsl(212 60% 14%));
+    --shadow-card: 0 1px 3px 0 hsl(212 60% 12% / 0.06), 0 1px 2px -1px hsl(212 60% 12% / 0.04);
+    --shadow-elevated: 0 10px 30px -10px hsl(210 100% 22% / 0.18);
+
+    /* Sidebar */
+    --sidebar-background: 210 100% 22%;
+    --sidebar-foreground: 210 30% 92%;
+    --sidebar-primary: 197 100% 44%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 100% 28%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 210 100% 18%;
+    --sidebar-ring: 197 100% 44%;
+  }
+
+  .dark {
+    --background: 212 60% 6%;
+    --foreground: 210 30% 95%;
+    --card: 212 50% 10%;
+    --card-foreground: 210 30% 95%;
+    --popover: 212 50% 10%;
+    --popover-foreground: 210 30% 95%;
+    --primary: 197 100% 50%;
+    --primary-foreground: 212 60% 6%;
+    --secondary: 207 100% 45%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 212 40% 16%;
+    --muted-foreground: 210 20% 65%;
+    --accent: 197 100% 44%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 212 40% 18%;
+    --input: 212 40% 18%;
+    --ring: 197 100% 50%;
+    --sidebar-background: 212 70% 8%;
+    --sidebar-foreground: 210 30% 92%;
+    --sidebar-primary: 197 100% 50%;
+    --sidebar-primary-foreground: 212 60% 6%;
+    --sidebar-accent: 212 60% 14%;
+    --sidebar-accent-foreground: 210 30% 95%;
+    --sidebar-border: 212 60% 14%;
+    --sidebar-ring: 197 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body, #root {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+    font-feature-settings: 'tnum';
+  }
+
+  /* numeric tabular */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+}
+
+@layer components {
+  .panel {
+    @apply bg-card text-card-foreground rounded-md border shadow-[var(--shadow-card)];
+  }
+  .panel-header {
+    @apply flex items-center justify-between px-4 py-2.5 border-b;
+  }
+  .panel-title {
+    @apply text-sm font-semibold text-foreground flex items-center gap-2;
+  }
+  .panel-body {
+    @apply p-4;
+  }
+  .kpi-label {
+    @apply text-xs text-muted-foreground font-medium;
+  }
+  .kpi-value {
+    @apply text-2xl font-bold tabular-nums text-foreground;
+  }
+}
+
+/* Pretty scrollbars matching theme (light/dark) */
+@layer utilities {
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--sidebar-border)) transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--sidebar-foreground) / 0.25);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--sidebar-foreground) / 0.45);
+    background-clip: padding-box;
+  }
+
+  /* Global app scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.55);
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
+
