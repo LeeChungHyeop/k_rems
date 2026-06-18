@@ -79,7 +79,7 @@ export default function AlarmHistory() {
         <div>
           <Label className="text-[10px] text-muted-foreground">설비 유형</Label>
           <Select value={deviceFilter} onValueChange={setDeviceFilter}>
-            <SelectTrigger className="h-9 text-xs w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 text-xs w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">전체</SelectItem>
               <SelectItem value="plant">발전소(전반)</SelectItem>
@@ -90,7 +90,7 @@ export default function AlarmHistory() {
         <div>
           <Label className="text-[10px] text-muted-foreground">알람 등급</Label>
           <Select value={levelFilter} onValueChange={setLevelFilter}>
-            <SelectTrigger className="h-9 text-xs w-[120px]"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 text-xs w-full sm:w-[120px]"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">전체</SelectItem>
               <SelectItem value="critical">심각</SelectItem>

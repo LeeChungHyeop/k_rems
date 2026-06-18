@@ -114,7 +114,7 @@ export default function PreventiveMaintenance() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>점검 구분</Label>
                     <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v as InspectionKind, subKind: '' })}>

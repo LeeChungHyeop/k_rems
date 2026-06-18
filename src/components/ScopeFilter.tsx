@@ -76,7 +76,7 @@ export function ScopeFilter({
             <ChevronDown className="h-3.5 w-3.5 opacity-60" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[420px] p-0" align="start">
+        <PopoverContent className="w-[min(420px,calc(100vw-1rem))] p-0" align="start">
           <div className="p-3 border-b">
             <div className="flex gap-1 mb-2">
               {KIND_TABS.map(k => (

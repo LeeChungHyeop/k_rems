@@ -194,7 +194,7 @@ export default function FaultRegistration() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label>설비 분류</Label>
                 <Select value={form.deviceCategory} onValueChange={(v) => {

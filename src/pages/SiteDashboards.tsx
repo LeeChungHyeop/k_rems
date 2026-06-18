@@ -62,7 +62,7 @@ export default function SiteDashboards() {
           <span className="h-1.5 w-1.5 rounded-full bg-secondary" /> 발전소별 대시보드
           <span className="text-xs text-muted-foreground font-normal">({PLANTS.length}개소)</span>
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
           {PLANTS.map(p => {
             const today = getPlantDailyEnergy(p);
             return (

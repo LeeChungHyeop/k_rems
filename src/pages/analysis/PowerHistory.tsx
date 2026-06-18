@@ -307,7 +307,7 @@ export default function PowerHistory() {
             <Label className="text-[10px] text-muted-foreground">조회 항목 (다중)</Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs min-w-[180px] justify-between">
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs w-full sm:min-w-[180px] justify-between">
                   <span>{metricSummary}</span>
                   <ChevronDown className="h-3.5 w-3.5 opacity-60" />
                 </Button>
@@ -329,7 +329,7 @@ export default function PowerHistory() {
             <div>
               <Label className="text-[10px] text-muted-foreground">설비 유형</Label>
               <Select value={form.deviceType} onValueChange={(v) => { setF('deviceType', v as DeviceType); setF('deviceIds', []); }}>
-                <SelectTrigger className="h-9 text-xs w-[140px]"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="h-9 text-xs w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(DEVICE_LABEL) as DeviceType[]).map(t => <SelectItem key={t} value={t}>{DEVICE_LABEL[t]}</SelectItem>)}
                 </SelectContent>

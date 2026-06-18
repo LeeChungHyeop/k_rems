@@ -79,7 +79,7 @@ function EndpointPicker({ label, value, onChange }: EndpointPickerProps) {
             value={text}
             onChange={(e) => handleText(e.target.value)}
             placeholder="YYYY-MM-DD"
-            className="h-8 w-[180px] text-xs tabular-nums"
+            className="h-8 w-full sm:w-[180px] text-xs tabular-nums"
             autoFocus
           />
           <Calendar
@@ -98,12 +98,14 @@ function EndpointPicker({ label, value, onChange }: EndpointPickerProps) {
 export function PeriodPicker({ value, onChange }: { value: PeriodRange; onChange: (v: PeriodRange) => void }) {
   const months = eachMonthInRange(value);
   return (
-    <div className="panel p-3 flex flex-wrap items-center gap-3">
-      <span className="text-xs font-semibold text-foreground">조회 기간</span>
-      <EndpointPicker label="시작" value={value.start} onChange={(v) => onChange({ ...value, start: v })} />
-      <span className="text-muted-foreground text-xs">~</span>
-      <EndpointPicker label="종료" value={value.end} onChange={(v) => onChange({ ...value, end: v })} />
-      <span className="ml-auto text-[11px] text-muted-foreground">총 {months.length}개월 표출 ({months[0]?.year}-{String(months[0]?.month).padStart(2,'0')} ~ {months.at(-1)?.year}-{String(months.at(-1)?.month).padStart(2,'0')})</span>
+    <div className="panel p-3 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+      <span className="text-xs font-semibold text-foreground shrink-0">조회 기간</span>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+        <EndpointPicker label="시작" value={value.start} onChange={(v) => onChange({ ...value, start: v })} />
+        <span className="text-muted-foreground text-xs hidden sm:inline">~</span>
+        <EndpointPicker label="종료" value={value.end} onChange={(v) => onChange({ ...value, end: v })} />
+      </div>
+      <span className="sm:ml-auto text-[11px] text-muted-foreground">총 {months.length}개월 표출 ({months[0]?.year}-{String(months[0]?.month).padStart(2,'0')} ~ {months.at(-1)?.year}-{String(months.at(-1)?.month).padStart(2,'0')})</span>
     </div>
   );
 }

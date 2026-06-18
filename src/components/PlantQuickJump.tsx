@@ -42,7 +42,7 @@ export function PlantQuickJump() {
           <ChevronDown className="h-3.5 w-3.5 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[360px] p-0" align="end">
+      <PopoverContent className="w-[min(360px,calc(100vw-1rem))] p-0" align="end">
         <div className="p-3 border-b">
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-2 top-2.5 text-muted-foreground" />

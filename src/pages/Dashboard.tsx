@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, Legend, Cell,
   PieChart, Pie,
@@ -186,7 +187,7 @@ export default function Dashboard() {
 
 
         <Panel title="전국 발전소 위치 지도" className="lg:row-span-2">
-          <KoreaMap height={520} />
+          <KoreaMapResponsive />
         </Panel>
 
         <Panel title={`${filterLabel ?? '전체'} 발전소 목록`} className="lg:row-span-2"
@@ -195,19 +196,19 @@ export default function Dashboard() {
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-card border-b">
                 <tr className="text-muted-foreground">
-                  <th className="text-left py-2 px-2 font-medium">통신</th>
-                  <th className="text-left py-2 px-2 font-medium">설비</th>
+                  <th className="text-left py-2 px-2 font-medium whitespace-nowrap">통신</th>
+                  <th className="text-left py-2 px-2 font-medium whitespace-nowrap">설비</th>
                   <th className="text-left py-2 px-2 font-medium">사업소명</th>
-                  <th className="text-right py-2 px-2 font-medium">설비(MW)</th>
-                  <th className="text-right py-2 px-2 font-medium">금일(MWh)</th>
+                  <th className="text-right py-2 px-2 font-medium whitespace-nowrap">설비(MW)</th>
+                  <th className="text-right py-2 px-2 font-medium whitespace-nowrap">금일(MWh)</th>
                 </tr>
               </thead>
               <tbody>
                 {todayByPlantSorted.map(({ p, today }) => (
                   <tr key={p.id} className="border-b last:border-0 hover:bg-muted/40 cursor-pointer"
                       onClick={() => navigate(`/plant/${p.id}`)}>
-                    <td className="py-1.5 px-2"><CommBadge plantId={p.id} /></td>
-                    <td className="py-1.5 px-2"><EquipBadge plantId={p.id} /></td>
+                    <td className="py-1.5 px-2 whitespace-nowrap"><CommBadge plantId={p.id} /></td>
+                    <td className="py-1.5 px-2 whitespace-nowrap"><EquipBadge plantId={p.id} /></td>
                     <td className="py-1.5 px-2">
                       <div className="flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full shrink-0" style={{ background: ENERGY_COLOR_VAR[p.type] }} />
@@ -334,14 +335,19 @@ function KpiCard({ icon, label, value, accent }: { icon: React.ReactNode; label:
   );
 }
 
+function KoreaMapResponsive() {
+  const isMobile = useIsMobile();
+  return <KoreaMap height={isMobile ? 280 : 520} />;
+}
+
 function RealtimePanel({ plants, totals }: { plants: typeof PLANTS; totals: { totalCapacity: number; currentOutput: number; todayEnergy: number; revenue: number; utilization: number; plantCount: number } }) {
   const byType = useMemo(() => getCurrentOutputByType(plants).filter(d => d.output > 0 || d.capacity > 0), [plants]);
   const data = byType.length > 0 ? byType : [{ type: 'solar' as const, output: 0, capacity: 1 }];
   return (
-    <div className="h-full flex gap-3 items-stretch">
-      {/* Left: semicircle donut by energy type */}
-      <div className="flex-shrink-0 w-[160px] flex flex-col items-center justify-between py-1">
-        <div className="relative w-full flex-1 min-h-0">
+    <div className="h-full flex flex-col sm:flex-row gap-3 items-stretch">
+      {/* Donut chart */}
+      <div className="flex-shrink-0 w-full max-w-[160px] sm:w-[160px] mx-auto sm:mx-0 flex flex-col items-center justify-between py-1">
+        <div className="relative w-full flex-1 min-h-0" style={{ minHeight: 100 }}>
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
@@ -376,8 +382,8 @@ function RealtimePanel({ plants, totals }: { plants: typeof PLANTS; totals: { to
           ))}
         </div>
       </div>
-      {/* Right: KPI grid — stretches to match donut height */}
-      <div className="flex-1 min-w-0 grid grid-cols-2 grid-rows-3 gap-1.5">
+      {/* KPI grid */}
+      <div className="flex-1 min-w-0 grid grid-cols-3 sm:grid-cols-2 gap-1.5">
         <MiniStat label="금일 누적 발전량" value={`${fmtNum(totals.todayEnergy, 1)} MWh`} accent="primary" />
         <MiniStat label="금일 누적 수익" value={`₩${fmtNum(totals.revenue / 1_000_000, 1)}M`} accent="success" />
         <MiniStat label="현재 이용률" value={`${totals.utilization.toFixed(1)}%`} accent="secondary" />
@@ -412,9 +418,9 @@ function AlarmIcon({ level }: { level: 'critical' | 'warning' | 'info' }) {
 function CommBadge({ plantId }: { plantId: string }) {
   const { status, detail } = getPlantCommSummary(plantId);
   const body =
-    status === 'down' ? <span className="inline-flex items-center gap-1 text-destructive text-[10px]"><WifiOff className="h-3 w-3" />단절</span>
-    : status === 'delay' ? <span className="inline-flex items-center gap-1 text-warning text-[10px]"><Wifi className="h-3 w-3" />지연</span>
-    : <span className="inline-flex items-center gap-1 text-success text-[10px]"><Wifi className="h-3 w-3" />정상</span>;
+    status === 'down' ? <span className="inline-flex items-center gap-1 text-destructive text-[10px] whitespace-nowrap"><WifiOff className="h-3 w-3 shrink-0" />단절</span>
+    : status === 'delay' ? <span className="inline-flex items-center gap-1 text-warning text-[10px] whitespace-nowrap"><Wifi className="h-3 w-3 shrink-0" />지연</span>
+    : <span className="inline-flex items-center gap-1 text-success text-[10px] whitespace-nowrap"><Wifi className="h-3 w-3 shrink-0" />정상</span>;
   return (
     <Tooltip>
       <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}><span>{body}</span></TooltipTrigger>
@@ -426,8 +432,8 @@ function CommBadge({ plantId }: { plantId: string }) {
 function EquipBadge({ plantId }: { plantId: string }) {
   const { ok, faults } = getPlantEquipmentSummary(plantId);
   const body = ok
-    ? <span className="inline-flex items-center gap-1 text-success text-[10px]"><Activity className="h-3 w-3" />정상</span>
-    : <span className="inline-flex items-center gap-1 text-destructive text-[10px] font-semibold"><AlertCircle className="h-3 w-3" />이상 {faults.length}</span>;
+    ? <span className="inline-flex items-center gap-1 text-success text-[10px] whitespace-nowrap"><Activity className="h-3 w-3 shrink-0" />정상</span>
+    : <span className="inline-flex items-center gap-1 text-destructive text-[10px] font-semibold whitespace-nowrap"><AlertCircle className="h-3 w-3 shrink-0" />이상 {faults.length}</span>;
   return (
     <Tooltip>
       <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}><span>{body}</span></TooltipTrigger>
@@ -458,8 +464,19 @@ function YesterdayScrollChart({
 }) {
   const ROW_H = 28;
   const CONTAINER_H = 260;
-  const LABEL_W = 130;
-  const VALUE_W = 64;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerW, setContainerW] = useState(400);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      setContainerW(entries[0]?.contentRect.width ?? 400);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const LABEL_W = containerW < 400 ? 80 : 130;
+  const VALUE_W = containerW < 400 ? 48 : 64;
   const AXIS_H = 22;
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -492,7 +509,7 @@ function YesterdayScrollChart({
   const fmtTick = (v: number) => v.toLocaleString('ko-KR', { maximumFractionDigits: axisMax < 5 ? 1 : 0 });
 
   return (
-    <div className="relative" style={{ height: CONTAINER_H + AXIS_H }}>
+    <div ref={containerRef} className="relative" style={{ height: CONTAINER_H + AXIS_H }}>
       {/* 스크롤 영역 (행 목록) */}
       <div
         ref={scrollRef}

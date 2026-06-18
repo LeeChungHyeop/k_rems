@@ -44,7 +44,7 @@ export default function PerformanceAnalysis() {
       <div className="flex items-center gap-2">
         <span className="text-xs text-muted-foreground">발전소</span>
         <Select value={plant?.id} onValueChange={setPlantId}>
-          <SelectTrigger className="h-9 w-[320px]">
+          <SelectTrigger className="h-9 w-full md:w-[320px]">
             <SelectValue placeholder="발전소 선택">
               {plant && (
                 <span className={issueMap.get(plant.id) ? 'text-destructive font-semibold' : ''}>

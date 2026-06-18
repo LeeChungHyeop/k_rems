@@ -86,21 +86,23 @@ export default function PlantDetail() {
       </Button>
 
       <div className="panel">
-        <div className="p-5 flex flex-wrap items-center gap-4">
-          <div className="h-14 w-14 rounded-lg flex items-center justify-center" style={{ background: color, opacity: 0.15 }}>
-            <Zap className="h-7 w-7" style={{ color }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-xs text-muted-foreground">{ENERGY_LABEL[plant.type]} · {plant.id}</div>
-            <h1 className="text-2xl font-bold text-foreground">{plant.name}</h1>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
-              <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{plant.region}</span>
-              <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />{plant.commissionedYear}년 준공</span>
-              <CommStatusHover plantId={plant.id} />
-              <EquipStatusHover plantId={plant.id} />
+        <div className="p-4 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="h-14 w-14 rounded-lg flex items-center justify-center shrink-0" style={{ background: color, opacity: 0.15 }}>
+              <Zap className="h-7 w-7" style={{ color }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground">{ENERGY_LABEL[plant.type]} · {plant.id}</div>
+              <h1 className="text-2xl font-bold text-foreground truncate">{plant.name}</h1>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+                <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{plant.region}</span>
+                <span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" />{plant.commissionedYear}년 준공</span>
+                <CommStatusHover plantId={plant.id} />
+                <EquipStatusHover plantId={plant.id} />
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3 text-center min-w-[280px]">
+          <div className="grid grid-cols-3 gap-3 text-center w-full md:w-auto md:min-w-[280px]">
             <Stat label="설비용량" value={`${plant.capacityMW} MW`} />
             <Stat label="현재출력" value={`${current.toFixed(1)} MW`} highlight />
             <Stat label="이용률" value={`${utilization.toFixed(1)}%`} />
@@ -109,7 +111,7 @@ export default function PlantDetail() {
       </div>
 
       <Tabs defaultValue="summary">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 max-w-2xl">
           <TabsTrigger value="summary">요약</TabsTrigger>
           <TabsTrigger value="control">출력제어</TabsTrigger>
           <TabsTrigger value="performance">성능분석</TabsTrigger>
@@ -450,7 +452,7 @@ function SummaryTab({ plant, color }: { plant: typeof PLANTS[number]; color: str
       {/* Right mid+bottom: Equipment status (spans 2 rows) */}
       <div className="panel lg:row-span-2">
         <div className="panel-header"><h3 className="panel-title"><Activity className="h-4 w-4" />설비 현황</h3></div>
-        <div className="panel-body space-y-4 max-h-[600px] overflow-auto">
+        <div className="panel-body space-y-4 max-h-[600px] overflow-auto overflow-x-auto">
           <EquipBlock title={`태양광 인버터 (${inverters.length})`}>
             <table className="w-full text-[10px]">
               <thead className="text-muted-foreground border-b">
