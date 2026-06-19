@@ -9,7 +9,7 @@ function getInitial(): Theme {
     const saved = localStorage.getItem(KEY) as Theme | null;
     if (saved === 'light' || saved === 'dark') return saved;
   } catch {}
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+  return document.documentElement.classList.contains('dark') ? 'dark' : 'dark';
 }
 
 function apply(theme: Theme) {

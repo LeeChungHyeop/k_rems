@@ -21,6 +21,15 @@ export function KoreaMap({
   const [view, setView] = useState<MapView>('inland');
   const navigate = useNavigate();
   const [provinces, setProvinces] = useState<FeatureCollection | null>(null);
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -72,17 +81,17 @@ export function KoreaMap({
           minZoom={cfg.minZoom}
           maxZoom={14}
           scrollWheelZoom
-          style={{ height: '100%', width: '100%', background: 'hsl(0 0% 99%)' }}
+          style={{ height: '100%', width: '100%', background: isDark ? 'hsl(220 20% 10%)' : 'hsl(0 0% 99%)' }}
         >
           {provinces && (
             <GeoJSON
               data={provinces}
               style={{
-                color: 'hsl(220 20% 45%)',
+                color: isDark ? 'hsl(220 20% 40%)' : 'hsl(220 20% 45%)',
                 weight: 1,
-                opacity: 0.7,
-                fillColor: 'transparent',
-                fillOpacity: 0,
+                opacity: 0.8,
+                fillColor: isDark ? 'hsl(220 20% 15%)' : 'transparent',
+                fillOpacity: isDark ? 1 : 0,
                 interactive: false,
               } as any}
               // @ts-ignore — react-leaflet 패스스루
