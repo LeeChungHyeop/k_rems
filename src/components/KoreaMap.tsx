@@ -75,7 +75,7 @@ export function KoreaMap({
 
       <div className="relative flex-1 min-h-0">
         <MapContainer
-          key={view}
+          key={`${view}-${isDark}`}
           center={cfg.center}
           zoom={cfg.zoom}
           minZoom={cfg.minZoom}

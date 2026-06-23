@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Building2, Users, MapPin, Sun, AlertCircle, ShieldCheck, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -36,31 +36,46 @@ const REGION_L1 = Object.keys(REGIONS);
 
 // 확장 발전소 정보 (데모 메모리 보관용)
 interface PlantEx extends Plant {
-  plantCode?: string;       // 발전기코드
+  plantCode?: string;
   regionL1?: string;
   regionL2?: string;
-  address?: string;         // 세부주소
-  smpPrice?: number;        // 원/kWh
-  recPrice?: number;        // 원/REC
+  address?: string;
+  smpPrice?: number;
+  recPrice?: number;
   recWeight?: number;
-  capacityW?: number;       // 와트 단위
+  capacityW?: number;
   category?: 'self' | 'spc';
-  commissionDate?: string;  // YYYY-MM
-  bizStart?: string;        // YYYY-MM-DD
-  bizEnd?: string;          // YYYY-MM-DD
-  totalCost?: number;       // 원
-  investment?: number;      // 원
-  sharePct?: number;        // %
+  commissionDate?: string;
+  bizStart?: string;
+  bizEnd?: string;
+  totalCost?: number;
+  investment?: number;
+  sharePct?: number;
   extra?: string;
   manual?: boolean;
 }
 
-interface UserRow { id: string; name: string; role: string; dept: string; status: string; }
+interface UserRow {
+  id: string;
+  name: string;
+  role: '시스템관리자' | '발전소운영자' | '협력사';
+  phone: string;
+  email: string;
+  dept: string;
+  position: string;
+  active: boolean;
+  groupId: string;
+  description: string;
+  password?: string;
+}
+
 interface AlarmRule { id: string; device: string; metric: string; warn: string; critical: string; channel: string; }
 
 const INIT_USERS: UserRow[] = [
-  { id: 'ADMIN', name: '시스템 관리자', role: '관리자', dept: '본사 신재생사업처', status: '활성' },
-  ...OPERATORS.map(o => ({ id: o.id, name: o.name, role: o.role, dept: o.region, status: '활성' })),
+  { id: 'ADMIN', name: '시스템 관리자', role: '시스템관리자', phone: '010-0000-0000', email: 'admin@khnp.co.kr', dept: '본사 신재생사업처', position: '처장', active: true, groupId: '', description: '' },
+  { id: 'OP-01', name: '윤지훈', role: '발전소운영자', phone: '010-1111-2222', email: 'yoon@khnp.co.kr', dept: '신재생사업처', position: '대리', active: true, groupId: 'G-MGR-01', description: '수도권/강원/충청 담당' },
+  { id: 'OP-02', name: '김성민', role: '발전소운영자', phone: '010-3333-4444', email: 'kim@khnp.co.kr', dept: '신재생사업처', position: '대리', active: true, groupId: 'G-MGR-02', description: '영남 담당' },
+  { id: 'OP-03', name: '차주현', role: '발전소운영자', phone: '010-5555-6666', email: 'cha@khnp.co.kr', dept: '신재생사업처', position: '대리', active: true, groupId: 'G-MGR-03', description: '호남/제주 담당' },
 ];
 
 const INIT_ALARMS: AlarmRule[] = [
@@ -72,6 +87,10 @@ const INIT_ALARMS: AlarmRule[] = [
 ];
 
 export default function Admin() {
+  // plants·groups 최상위 리프팅 → PlantAdmin·GroupAdmin·UserAdmin 간 완전 동기화
+  const [plants, setPlants] = useState<PlantEx[]>(INIT_PLANTS as PlantEx[]);
+  const [groups, setGroups] = useState<PlantGroup[]>(INIT_GROUPS);
+
   return (
     <div className="p-4 lg:p-5">
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
@@ -92,9 +111,9 @@ export default function Admin() {
           <TabsTrigger value="alarms" className="gap-1"><AlertCircle className="h-3.5 w-3.5" />알람 설정</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="plants"><PlantAdmin /></TabsContent>
-        <TabsContent value="groups"><GroupAdmin /></TabsContent>
-        <TabsContent value="users"><UserAdmin /></TabsContent>
+        <TabsContent value="plants"><PlantAdmin plants={plants} setPlants={setPlants} /></TabsContent>
+        <TabsContent value="groups"><GroupAdmin groups={groups} setGroups={setGroups} plants={plants} /></TabsContent>
+        <TabsContent value="users"><UserAdmin groups={groups} plants={plants} /></TabsContent>
         <TabsContent value="alarms"><AlarmAdmin /></TabsContent>
       </Tabs>
     </div>
@@ -104,14 +123,18 @@ export default function Admin() {
 // ============================================================================
 // 발전소
 // ============================================================================
-function PlantAdmin() {
-  const [plants, setPlants] = useState<PlantEx[]>(INIT_PLANTS as PlantEx[]);
+function PlantAdmin({
+  plants,
+  setPlants,
+}: {
+  plants: PlantEx[];
+  setPlants: React.Dispatch<React.SetStateAction<PlantEx[]>>;
+}) {
   const [editing, setEditing] = useState<PlantEx | null>(null);
   const [open, setOpen] = useState(false);
 
-  // 자동 연동된(가상) 실시간 SMP/REC 단가 — 데모용
-  const liveSmp = 142.8;   // 원/kWh
-  const liveRec = 71500;   // 원/REC
+  const liveSmp = 142.8;
+  const liveRec = 71500;
 
   const genPlantId = () => `KR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
@@ -157,7 +180,6 @@ function PlantAdmin() {
     setOpen(true);
   };
 
-  // 지분 자동 계산 (투자비/총사업비)
   const autoShare = useMemo(() => {
     if (!editing) return 0;
     const t = editing.totalCost ?? 0;
@@ -242,7 +264,6 @@ function PlantAdmin() {
           <DialogHeader><DialogTitle>발전소 {plants.some(p => p.id === editing?.id) ? '수정' : '추가'}</DialogTitle></DialogHeader>
           {editing && (
             <div className="space-y-5">
-              {/* 기본정보 */}
               <fieldset className="border rounded-md p-3">
                 <legend className="text-xs font-semibold px-1 text-muted-foreground">기본 정보</legend>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-1">
@@ -278,7 +299,6 @@ function PlantAdmin() {
                 </div>
               </fieldset>
 
-              {/* 위치정보 */}
               <fieldset className="border rounded-md p-3">
                 <legend className="text-xs font-semibold px-1 text-muted-foreground">위치 정보</legend>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-1">
@@ -302,7 +322,6 @@ function PlantAdmin() {
                 </div>
               </fieldset>
 
-              {/* 설비/단가 */}
               <fieldset className="border rounded-md p-3">
                 <legend className="text-xs font-semibold px-1 text-muted-foreground">설비 · 단가</legend>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-1">
@@ -320,7 +339,6 @@ function PlantAdmin() {
                 </div>
               </fieldset>
 
-              {/* 사업기간 */}
               <fieldset className="border rounded-md p-3">
                 <legend className="text-xs font-semibold px-1 text-muted-foreground">사업 기간</legend>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-1">
@@ -330,7 +348,6 @@ function PlantAdmin() {
                 </div>
               </fieldset>
 
-              {/* 투자 */}
               <fieldset className="border rounded-md p-3">
                 <legend className="text-xs font-semibold px-1 text-muted-foreground">투자 정보</legend>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-1">
@@ -349,7 +366,6 @@ function PlantAdmin() {
                 </div>
               </fieldset>
 
-              {/* 기타 */}
               <fieldset className="border rounded-md p-3">
                 <legend className="text-xs font-semibold px-1 text-muted-foreground">기타</legend>
                 <div className="space-y-3 mt-1">
@@ -378,10 +394,17 @@ function PlantAdmin() {
 }
 
 // ============================================================================
-// 그룹
+// 그룹 — groups 상태는 Admin에서 prop으로 받아 UserAdmin과 공유
 // ============================================================================
-function GroupAdmin() {
-  const [groups, setGroups] = useState<PlantGroup[]>(INIT_GROUPS);
+function GroupAdmin({
+  groups,
+  setGroups,
+  plants,
+}: {
+  groups: PlantGroup[];
+  setGroups: React.Dispatch<React.SetStateAction<PlantGroup[]>>;
+  plants: PlantEx[];
+}) {
   const [editing, setEditing] = useState<PlantGroup | null>(null);
   const [open, setOpen] = useState(false);
 
@@ -440,7 +463,7 @@ function GroupAdmin() {
               <div>
                 <Label className="text-xs">소속 발전소 ({editing.plantIds.length})</Label>
                 <div className="border rounded-md p-2 max-h-48 overflow-auto grid grid-cols-2 gap-1 mt-1">
-                  {INIT_PLANTS.map(p => {
+                  {plants.map(p => {
                     const checked = editing.plantIds.includes(p.id);
                     return (
                       <label key={p.id} className="flex items-center gap-2 text-[11px] cursor-pointer hover:bg-muted/40 px-1 py-0.5 rounded">
@@ -466,15 +489,64 @@ function GroupAdmin() {
 // ============================================================================
 // 사용자
 // ============================================================================
-function UserAdmin() {
+function UserAdmin({ groups, plants }: { groups: PlantGroup[]; plants: PlantEx[] }) {
   const [users, setUsers] = useState<UserRow[]>(INIT_USERS);
   const [editing, setEditing] = useState<UserRow | null>(null);
+  const [pwInput, setPwInput] = useState({ pw: '', confirm: '' });
   const [open, setOpen] = useState(false);
 
-  const openNew = () => { setEditing({ id: `U-${Date.now()}`, name: '', role: '운영자', dept: '', status: '활성' }); setOpen(true); };
-  const openEdit = (u: UserRow) => { setEditing({ ...u }); setOpen(true); };
-  const save = () => { if (!editing) return; setUsers(prev => prev.some(u => u.id === editing.id) ? prev.map(u => u.id === editing.id ? editing : u) : [...prev, editing]); setOpen(false); toast({ title: '저장됨' }); };
+  const isNew = editing ? !users.some(u => u.id === editing.id) : true;
+
+  // 선택된 그룹에 속한 발전소 목록 (그룹탭 변경과 자동 동기화)
+  const selectedGroupPlants = useMemo(() => {
+    if (!editing?.groupId) return [];
+    const g = groups.find(g => g.id === editing.groupId);
+    if (!g) return [];
+    return plants.filter(p => g.plantIds.includes(p.id));
+  }, [editing?.groupId, groups]);
+
+  const openNew = () => {
+    setEditing({ id: '', name: '', role: '발전소운영자', phone: '', email: '', dept: '', position: '', active: true, groupId: '', description: '' });
+    setPwInput({ pw: '', confirm: '' });
+    setOpen(true);
+  };
+
+  const openEdit = (u: UserRow) => {
+    setEditing({ ...u });
+    setPwInput({ pw: '', confirm: '' });
+    setOpen(true);
+  };
+
+  const validate = (): string | null => {
+    if (!editing) return null;
+    if (!editing.id.trim()) return 'ID는 필수입니다.';
+    if (isNew && !pwInput.pw) return '비밀번호는 필수입니다.';
+    if (pwInput.pw && pwInput.pw !== pwInput.confirm) return '비밀번호가 일치하지 않습니다.';
+    if (!editing.name.trim()) return '이름은 필수입니다.';
+    if (!editing.role) return '권한등급은 필수입니다.';
+    if (!editing.phone.trim()) return '휴대폰은 필수입니다.';
+    if (!editing.dept.trim()) return '소속은 필수입니다.';
+    if (!editing.position.trim()) return '직급은 필수입니다.';
+    return null;
+  };
+
+  const save = () => {
+    const err = validate();
+    if (err) { toast({ title: '입력값 확인', description: err, variant: 'destructive' as any }); return; }
+    if (!editing) return;
+    const toSave: UserRow = { ...editing, ...(pwInput.pw ? { password: pwInput.pw } : {}) };
+    setUsers(prev => prev.some(u => u.id === toSave.id) ? prev.map(u => u.id === toSave.id ? toSave : u) : [...prev, toSave]);
+    setOpen(false);
+    toast({ title: '저장됨', description: `${toSave.name} 사용자 정보가 저장되었습니다.` });
+  };
+
   const remove = (id: string) => { setUsers(prev => prev.filter(u => u.id !== id)); toast({ title: '삭제됨' }); };
+
+  const roleBadgeClass = (role: string) => {
+    if (role === '시스템관리자') return 'bg-primary/10 text-primary border-primary/30';
+    if (role === '발전소운영자') return 'bg-blue-500/10 text-blue-600 border-blue-300/30 dark:text-blue-400';
+    return 'bg-orange-500/10 text-orange-600 border-orange-300/30 dark:text-orange-400';
+  };
 
   return (
     <>
@@ -483,54 +555,182 @@ function UserAdmin() {
         <Button size="sm" className="gap-1 h-8" onClick={openNew}><Plus className="h-3.5 w-3.5" />사용자 추가</Button>
       </div>
       <section className="panel">
-        <table className="w-full text-xs">
-          <thead><tr className="border-b text-left text-muted-foreground">
-            <th className="px-3 py-2">ID</th><th className="px-3 py-2">이름</th><th className="px-3 py-2">역할</th>
-            <th className="px-3 py-2">소속</th><th className="px-3 py-2">상태</th><th className="px-3 py-2 text-right">작업</th>
-          </tr></thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id} className="border-b hover:bg-muted/40">
-                <td className="px-3 py-2 font-mono">{u.id}</td>
-                <td className="px-3 py-2 font-medium">{u.name}</td>
-                <td className="px-3 py-2"><Badge variant="outline" className="text-[10px]">{u.role}</Badge></td>
-                <td className="px-3 py-2">{u.dept}</td>
-                <td className="px-3 py-2"><Badge className="bg-success text-success-foreground text-[10px]">{u.status}</Badge></td>
-                <td className="px-3 py-2 text-right">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(u)}><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="overflow-auto max-h-[560px]">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-card border-b"><tr className="text-left text-muted-foreground">
+              <th className="px-3 py-2">ID</th>
+              <th className="px-3 py-2">이름</th>
+              <th className="px-3 py-2">권한등급</th>
+              <th className="px-3 py-2">소속 / 직급</th>
+              <th className="px-3 py-2">휴대폰</th>
+              <th className="px-3 py-2 text-center">사용</th>
+              <th className="px-3 py-2">담당그룹</th>
+              <th className="px-3 py-2 text-right">작업</th>
+            </tr></thead>
+            <tbody>
+              {users.map(u => {
+                const grp = groups.find(g => g.id === u.groupId);
+                return (
+                  <tr key={u.id} className="border-b hover:bg-muted/40">
+                    <td className="px-3 py-2 font-mono text-[11px]">{u.id}</td>
+                    <td className="px-3 py-2 font-medium">{u.name}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant="outline" className={`text-[10px] whitespace-nowrap ${roleBadgeClass(u.role)}`}>{u.role}</Badge>
+                    </td>
+                    <td className="px-3 py-2 text-muted-foreground">{u.dept} / {u.position}</td>
+                    <td className="px-3 py-2">{u.phone}</td>
+                    <td className="px-3 py-2 text-center">
+                      {u.active
+                        ? <Badge className="bg-success text-success-foreground text-[10px]">활성</Badge>
+                        : <Badge variant="outline" className="text-[10px] text-muted-foreground">비활성</Badge>}
+                    </td>
+                    <td className="px-3 py-2 text-[11px] text-muted-foreground max-w-[140px] truncate">{grp?.name ?? '-'}</td>
+                    <td className="px-3 py-2 text-right">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(u)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(u.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>사용자 {users.some(u => u.id === editing?.id) ? '수정' : '추가'}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>사용자 {isNew ? '추가' : '수정'}</DialogTitle></DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="ID"><Input value={editing.id} onChange={e => setEditing({ ...editing, id: e.target.value })} /></Field>
-              <Field label="이름"><Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></Field>
-              <Field label="역할">
-                <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="관리자">관리자</SelectItem>
-                    <SelectItem value="O&M 담당자">O&M 담당자</SelectItem>
-                    <SelectItem value="운영자">운영자</SelectItem>
-                    <SelectItem value="점검원">점검원</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field label="소속"><Input value={editing.dept} onChange={e => setEditing({ ...editing, dept: e.target.value })} /></Field>
-              <Field label="상태">
-                <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="활성">활성</SelectItem><SelectItem value="비활성">비활성</SelectItem></SelectContent>
-                </Select>
-              </Field>
+            <div className="space-y-4">
+              {/* 계정 정보 */}
+              <fieldset className="border rounded-md p-3">
+                <legend className="text-xs font-semibold px-1 text-muted-foreground">계정 정보</legend>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <Field label="ID *">
+                    <Input
+                      value={editing.id}
+                      onChange={e => setEditing({ ...editing, id: e.target.value })}
+                      readOnly={!isNew}
+                      className={!isNew ? 'bg-muted/40 font-mono text-[11px]' : ''}
+                      placeholder="로그인 ID"
+                    />
+                  </Field>
+                  <div /> {/* spacer */}
+                  <Field label={isNew ? '비밀번호 *' : '새 비밀번호'}>
+                    <Input
+                      type="password"
+                      value={pwInput.pw}
+                      onChange={e => setPwInput({ ...pwInput, pw: e.target.value })}
+                      placeholder={isNew ? '필수 입력' : '변경 시만 입력'}
+                    />
+                  </Field>
+                  <Field label={isNew ? '비밀번호 확인 *' : '비밀번호 확인'}>
+                    <Input
+                      type="password"
+                      value={pwInput.confirm}
+                      onChange={e => setPwInput({ ...pwInput, confirm: e.target.value })}
+                      placeholder={isNew ? '필수 입력' : '변경 시만 입력'}
+                    />
+                    {pwInput.pw && pwInput.pw !== pwInput.confirm && (
+                      <div className="text-[10px] text-destructive mt-0.5">비밀번호가 일치하지 않습니다.</div>
+                    )}
+                  </Field>
+                </div>
+                {!isNew && (
+                  <div className="text-[10px] text-muted-foreground mt-2">※ 비밀번호를 변경하지 않으려면 비밀번호 칸을 비워두세요.</div>
+                )}
+              </fieldset>
+
+              {/* 기본 정보 */}
+              <fieldset className="border rounded-md p-3">
+                <legend className="text-xs font-semibold px-1 text-muted-foreground">기본 정보</legend>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <Field label="이름 *">
+                    <Input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} />
+                  </Field>
+                  <Field label="권한등급 *">
+                    <Select value={editing.role} onValueChange={(v) => setEditing({ ...editing, role: v as UserRow['role'] })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="시스템관리자">시스템관리자</SelectItem>
+                        <SelectItem value="발전소운영자">발전소운영자</SelectItem>
+                        <SelectItem value="협력사">협력사</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="휴대폰 *">
+                    <Input value={editing.phone} onChange={e => setEditing({ ...editing, phone: e.target.value })} placeholder="010-0000-0000" />
+                  </Field>
+                  <Field label="이메일">
+                    <Input type="email" value={editing.email} onChange={e => setEditing({ ...editing, email: e.target.value })} placeholder="선택 입력" />
+                  </Field>
+                  <Field label="소속 *">
+                    <Input value={editing.dept} onChange={e => setEditing({ ...editing, dept: e.target.value })} placeholder="소속 부서 또는 회사명" />
+                  </Field>
+                  <Field label="직급 *">
+                    <Input value={editing.position} onChange={e => setEditing({ ...editing, position: e.target.value })} placeholder="직급 또는 직책" />
+                  </Field>
+                </div>
+              </fieldset>
+
+              {/* 사용 설정 */}
+              <fieldset className="border rounded-md p-3">
+                <legend className="text-xs font-semibold px-1 text-muted-foreground">사용 설정</legend>
+                <div className="space-y-3 mt-1">
+                  <label className="flex items-start gap-2 cursor-pointer rounded-md border p-2 hover:bg-muted/40">
+                    <Checkbox
+                      checked={editing.active}
+                      onCheckedChange={(v) => setEditing({ ...editing, active: !!v })}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-0.5">
+                      <div className="text-xs font-medium">사용 여부</div>
+                      <div className="text-[10px] text-muted-foreground">미체크 시 해당 계정으로 로그인이 불가합니다.</div>
+                    </div>
+                  </label>
+
+                  <Field label="담당 그룹 (선택)">
+                    <Select
+                      value={editing.groupId || '__none__'}
+                      onValueChange={(v) => setEditing({ ...editing, groupId: v === '__none__' ? '' : v })}
+                    >
+                      <SelectTrigger><SelectValue placeholder="그룹 선택" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">없음</SelectItem>
+                        {groups.map(g => (
+                          <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field label="담당 사업소 (그룹 연동 자동표시)">
+                    <div className="border rounded-md px-3 py-2 min-h-[2.25rem] bg-muted/40 text-[11px] text-muted-foreground leading-relaxed">
+                      {selectedGroupPlants.length > 0
+                        ? selectedGroupPlants.map(p => p.name).join(' · ')
+                        : <span className="italic">담당 그룹 선택 시 자동으로 표시됩니다.</span>}
+                    </div>
+                    {selectedGroupPlants.length > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-0.5">총 {selectedGroupPlants.length}개 사업소</div>
+                    )}
+                  </Field>
+                </div>
+              </fieldset>
+
+              {/* 설명 */}
+              <fieldset className="border rounded-md p-3">
+                <legend className="text-xs font-semibold px-1 text-muted-foreground">기타</legend>
+                <div className="mt-1">
+                  <Field label="설명" full>
+                    <Textarea
+                      rows={3}
+                      value={editing.description}
+                      onChange={e => setEditing({ ...editing, description: e.target.value })}
+                      placeholder="기타 설명 입력"
+                    />
+                  </Field>
+                </div>
+              </fieldset>
             </div>
           )}
           <DialogFooter>
