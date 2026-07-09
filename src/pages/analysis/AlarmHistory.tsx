@@ -70,7 +70,7 @@ export default function AlarmHistory() {
     <div className="p-4 lg:p-5">
       <div className="mb-3">
         <h1 className="text-xl font-bold">알람이력</h1>
-        <p className="text-xs text-muted-foreground mt-0.5">행을 더블클릭하면 메모 작성 및 장애등록과 연계할 수 있습니다.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">행을 더블클릭하면 메모 작성 및 장애현황과 연계할 수 있습니다.</p>
       </div>
 
       <AnalysisFilters value={filter} onChange={setFilter} showPeriod={false} />
@@ -169,7 +169,7 @@ export default function AlarmHistory() {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditing(null)}>닫기</Button>
             <Button variant="secondary" onClick={saveMemo}>메모 저장</Button>
-            <Button className="gap-1" onClick={goToFault}><FileWarning className="h-4 w-4" />장애등록으로 이동</Button>
+            <Button className="gap-1" onClick={goToFault}><FileWarning className="h-4 w-4" />장애현황으로 이동</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

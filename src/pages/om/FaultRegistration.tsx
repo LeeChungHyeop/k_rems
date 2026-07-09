@@ -168,7 +168,7 @@ export default function FaultRegistration() {
     <div className="p-4 lg:p-5">
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-xl font-bold">장애 등록</h1>
+          <h1 className="text-xl font-bold">장애 현황</h1>
           <p className="text-xs text-muted-foreground mt-0.5">발생 → 복구예정 등록 후 복구완료일시 입력 시 손실액 자동 계산 · 행 더블클릭 시 수정</p>
         </div>
         <div className="flex gap-2">
@@ -273,7 +273,7 @@ export default function FaultRegistration() {
 
       <section className="panel">
         <header className="panel-header">
-          <h3 className="panel-title">장애 등록 목록 ({records.length}건) · 행 더블클릭 시 수정</h3>
+          <h3 className="panel-title">장애 현황 목록 ({records.length}건) · 행 더블클릭 시 수정</h3>
         </header>
         <div className="overflow-auto max-h-[600px]">
           <table className="w-full text-xs">

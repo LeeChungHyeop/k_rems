@@ -147,8 +147,8 @@ export default function MaintenanceHistory() {
                       <td className="px-3 py-2 tabular-nums text-muted-foreground">{r.completedDate ?? '-'}</td>
                       <td className="px-3 py-2">{r.inspector ?? '-'}</td>
                       <td className="px-3 py-2">
-                        {r.result === 'pass' && <Badge className="bg-success text-success-foreground">합격</Badge>}
-                        {r.result === 'fail' && <Badge variant="destructive">불합격</Badge>}
+                        {r.result === 'confirmed' && <Badge className="bg-success text-success-foreground">확인</Badge>}
+                        {r.result === 'revision' && <Badge variant="destructive">수정요청</Badge>}
                         {(r.result === 'pending' || !r.result) && <Badge variant="outline">대기</Badge>}
                       </td>
                       <td className="px-3 py-2 max-w-[260px] truncate">{r.notes ?? '-'}</td>
@@ -235,8 +235,8 @@ export default function MaintenanceHistory() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">대기</SelectItem>
-                      <SelectItem value="pass">합격</SelectItem>
-                      <SelectItem value="fail">불합격</SelectItem>
+                      <SelectItem value="confirmed">확인</SelectItem>
+                      <SelectItem value="revision">수정요청</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -249,6 +249,12 @@ export default function MaintenanceHistory() {
                   <Input type="date" value={editMaint.completedDate ?? ''} onChange={(e) => setEditMaint({ ...editMaint, completedDate: e.target.value })} />
                 </div>
               </div>
+              {editMaint.result === 'revision' && (
+                <div>
+                  <Label>미비점</Label>
+                  <Textarea rows={2} value={editMaint.deficiency ?? ''} onChange={(e) => setEditMaint({ ...editMaint, deficiency: e.target.value })} placeholder="미비점: " />
+                </div>
+              )}
               <div>
                 <Label>담당자</Label>
                 <Input value={editMaint.inspector ?? ''} onChange={(e) => setEditMaint({ ...editMaint, inspector: e.target.value })} />

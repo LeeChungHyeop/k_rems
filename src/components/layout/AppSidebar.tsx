@@ -41,7 +41,7 @@ const analysisItems = [
 ];
 
 const omItems = [
-  { title: '장애등록', url: '/om/faults' },
+  { title: '장애현황', url: '/om/faults' },
   { title: '예방정비', url: '/om/preventive' },
   { title: '이력조회', url: '/om/history' },
 ];

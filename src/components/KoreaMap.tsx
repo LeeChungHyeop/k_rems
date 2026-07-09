@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapContainer, CircleMarker, Tooltip, GeoJSON } from 'react-leaflet';
+import { MapContainer, CircleMarker, Tooltip, GeoJSON, useMap } from 'react-leaflet';
 import type { FeatureCollection } from 'geojson';
+import type { Map as LeafletMap } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { PLANTS, ENERGY_COLOR_VAR, ENERGY_LABEL, type Plant } from '@/data/mockData';
 
@@ -11,6 +12,15 @@ const VIEW_CONFIG: Record<MapView, { center: [number, number]; zoom: number; min
   inland: { center: [36.5, 127.8], zoom: 7, minZoom: 6 },
   jeju: { center: [33.38, 126.55], zoom: 9, minZoom: 8 },
 };
+
+function InvalidateSizeOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    const id = requestAnimationFrame(() => map.invalidateSize());
+    return () => cancelAnimationFrame(id);
+  }, [map]);
+  return null;
+}
 
 export function KoreaMap({
   height = 520,
@@ -22,6 +32,8 @@ export function KoreaMap({
   const navigate = useNavigate();
   const [provinces, setProvinces] = useState<FeatureCollection | null>(null);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -38,6 +50,14 @@ export function KoreaMap({
       .then((d) => { if (alive) setProvinces(d); })
       .catch(() => {});
     return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    const el = mapWrapperRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => mapRef.current?.invalidateSize());
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
 
   const handleClick = (p: Plant) => {
@@ -73,9 +93,10 @@ export function KoreaMap({
         ))}
       </div>
 
-      <div className="relative flex-1 min-h-0">
+      <div ref={mapWrapperRef} className="relative flex-1 min-h-0">
         <MapContainer
           key={`${view}-${isDark}`}
+          ref={mapRef}
           center={cfg.center}
           zoom={cfg.zoom}
           minZoom={cfg.minZoom}
@@ -83,6 +104,7 @@ export function KoreaMap({
           scrollWheelZoom
           style={{ height: '100%', width: '100%', background: isDark ? 'hsl(220 20% 10%)' : 'hsl(0 0% 99%)' }}
         >
+          <InvalidateSizeOnMount />
           {provinces && (
             <GeoJSON
               data={provinces}

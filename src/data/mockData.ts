@@ -596,7 +596,8 @@ export interface MaintenanceRecord {
   category: InspectionKind;
   subKind?: string; // 특별점검/정기검사일 때 점검종류·검사종류
   scheduledDate: string; completedDate?: string;
-  result?: 'pass' | 'fail' | 'pending'; notes?: string; inspector?: string;
+  result?: 'confirmed' | 'revision' | 'pending'; notes?: string; inspector?: string;
+  deficiency?: string; // 수정요청 시 감독이 남기는 미비점
   reportId?: string;
 }
 
@@ -621,8 +622,9 @@ export const MAINTENANCE_RECORDS: MaintenanceRecord[] = (() => {
       subKind: subs[cat] ? subs[cat][i % subs[cat].length] : undefined,
       scheduledDate: scheduled,
       completedDate: isPast ? scheduled : undefined,
-      result: isPast ? (i % 8 === 0 ? 'fail' : 'pass') : 'pending',
+      result: isPast ? (i % 8 === 0 ? 'revision' : 'confirmed') : 'pending',
       notes: isPast ? '정기 점검 수행 — 정상' : '예정',
+      deficiency: isPast && i % 8 === 0 ? '접속함 케이블 결선상태 재확인 필요' : undefined,
       inspector: ops[i % 3],
     });
   }
@@ -658,7 +660,7 @@ export const INSPECTION_SCHEDULES: InspectionSchedule[] = (() => {
 
 // ====== 사업/수익 입력값 ======
 export interface PlantBusiness {
-  plantId: string; weight: number; fundFee: number; capexKRW: number; depreciationYears: number;
+  plantId: string; weight: number; capexKRW: number; depreciationYears: number;
   rentKRW: number; insuranceKRW: number; safetyMgmtKRW: number; repairKRW: number;
   outsourceKRW: number; miscIncomeKRW: number; miscLossKRW: number;
 }
@@ -667,7 +669,7 @@ const WEIGHT_BY_TYPE: Record<EnergyType, number> = { solar: 1.2, wind: 1.0, hydr
 
 export const PLANT_BUSINESS: Record<string, PlantBusiness> = Object.fromEntries(
   PLANTS.map(p => [p.id, {
-    plantId: p.id, weight: WEIGHT_BY_TYPE[p.type], fundFee: 5,
+    plantId: p.id, weight: WEIGHT_BY_TYPE[p.type],
     capexKRW: Math.round(p.capacityMW * 1_500_000_000),
     depreciationYears: p.type === 'solar' ? 20 : p.type === 'wind' ? 25 : p.type === 'hydro' ? 40 : 15,
     rentKRW: Math.round(p.capacityMW * 350_000),
@@ -725,13 +727,12 @@ export function getPlantRevenueBreakdown(plantId: string) {
   const utilization = CAPACITY_FACTOR[p.type] * 100;
   const smpRevenue = Math.round(salesMWh * 1000 * PRICE.SMP);
   const recRevenue = Math.round(salesMWh * 1000 * PRICE.REC * b.weight);
-  const fundRevenue = Math.round(salesMWh * 1000 * b.fundFee);
-  const totalRevenue = smpRevenue + recRevenue + fundRevenue;
+  const totalRevenue = smpRevenue + recRevenue;
   const avgUnitPrice = +(totalRevenue / (salesMWh * 1000)).toFixed(1);
   return {
-    capacityMW: p.capacityMW, weight: b.weight, fundFee: b.fundFee,
+    capacityMW: p.capacityMW, weight: b.weight,
     monthlyMWh: +monthlyMWh.toFixed(1), salesMWh: +salesMWh.toFixed(1), utilization: +utilization.toFixed(1),
-    avgSMP: PRICE.SMP, avgREC: PRICE.REC, smpRevenue, recRevenue, fundRevenue, totalRevenue, avgUnitPrice,
+    avgSMP: PRICE.SMP, avgREC: PRICE.REC, smpRevenue, recRevenue, totalRevenue, avgUnitPrice,
   };
 }
 

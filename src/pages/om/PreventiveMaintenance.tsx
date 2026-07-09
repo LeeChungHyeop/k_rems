@@ -8,13 +8,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, CalendarCheck, Calendar as CalendarIcon, ClipboardList, Trash2, FileText } from 'lucide-react';
+import { Plus, CalendarCheck, Calendar as CalendarIcon, ClipboardList, Trash2, FileText, Upload, ExternalLink, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ScopeFilter, defaultScope, plantsForScope, type ScopeQuery } from '@/components/ScopeFilter';
 import { MonthlyReportDialog, type MonthlyReport } from '@/components/om/MonthlyReportDialog';
 
 const CATEGORIES: InspectionKind[] = ['월간점검', '분기점검', '연간점검', '특별점검', '정기검사'];
 const NEEDS_SUBKIND = (c: InspectionKind) => c === '특별점검' || c === '정기검사';
+const SUMMARY_ACCEPT = '.pdf,.hwp,.hwpx,.doc,.docx';
+
+interface CompanySummaryReport {
+  fileName: string; fileUrl: string; fileType: string; uploadedAt: string;
+}
+
+function currentYearMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export default function PreventiveMaintenance() {
   const [records, setRecords] = useState<MaintenanceRecord[]>(MAINTENANCE_RECORDS);
@@ -23,6 +33,11 @@ export default function PreventiveMaintenance() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<MaintenanceRecord | null>(null);
   const [reportFor, setReportFor] = useState<MaintenanceRecord | null>(null);
+  const [revisionFor, setRevisionFor] = useState<string | null>(null);
+  const [deficiencyNote, setDeficiencyNote] = useState('');
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryMonth, setSummaryMonth] = useState(() => currentYearMonth());
+  const [companyReports, setCompanyReports] = useState<Record<string, CompanySummaryReport>>({});
 
   const [scope, setScope] = useState<ScopeQuery>(defaultScope());
   const [form, setForm] = useState({
@@ -56,8 +71,8 @@ export default function PreventiveMaintenance() {
 
   const totals = {
     pending: records.filter(r => r.result === 'pending' || !r.completedDate).length,
-    pass: records.filter(r => r.result === 'pass').length,
-    fail: records.filter(r => r.result === 'fail').length,
+    confirmed: records.filter(r => r.result === 'confirmed').length,
+    revision: records.filter(r => r.result === 'revision').length,
   };
 
   const handleAdd = () => {
@@ -74,7 +89,7 @@ export default function PreventiveMaintenance() {
       scheduledDate: form.scheduledDate,
       completedDate: form.completedDate || undefined,
       inspector: form.inspector, notes: form.notes,
-      result: form.completedDate ? 'pass' : 'pending',
+      result: form.completedDate ? 'confirmed' : 'pending',
     }));
     setRecords([...newRecs, ...records]);
     setOpen(false);
@@ -83,9 +98,54 @@ export default function PreventiveMaintenance() {
     toast.success(`${newRecs.length}개 발전소 점검 일정이 등록되었습니다`);
   };
 
-  const markComplete = (id: string, result: 'pass' | 'fail') => {
-    setRecords(records.map(r => r.id === id ? { ...r, completedDate: new Date().toISOString().slice(0, 10), result } : r));
-    toast.success(result === 'pass' ? '점검 완료(합격) 처리됨' : '점검 완료(불합격) 처리됨');
+  const markConfirmed = (id: string) => {
+    setRecords(records.map(r => r.id === id ? { ...r, completedDate: new Date().toISOString().slice(0, 10), result: 'confirmed', deficiency: undefined } : r));
+    toast.success('점검 완료(확인) 처리됨');
+  };
+
+  const openRevisionNote = (id: string) => { setRevisionFor(id); setDeficiencyNote(''); };
+  const submitRevision = () => {
+    if (!revisionFor) return;
+    if (!deficiencyNote.trim()) { toast.error('미비점을 입력하세요'); return; }
+    setRecords(records.map(r => r.id === revisionFor ? {
+      ...r, completedDate: new Date().toISOString().slice(0, 10), result: 'revision', deficiency: deficiencyNote.trim(),
+    } : r));
+    toast.success('수정요청 처리됨 — 미비점이 등록되었습니다');
+    setRevisionFor(null);
+    setDeficiencyNote('');
+  };
+
+  // ===== 협력사 종합보고서 (전체 개소 월간점검 첨부) =====
+  const monthlyTargets = useMemo(
+    () => records.filter(r => r.category === '월간점검' && r.scheduledDate.startsWith(summaryMonth)),
+    [records, summaryMonth],
+  );
+  const monthlyDoneCount = monthlyTargets.filter(r => !!r.completedDate).length;
+  const monthlyAllDone = monthlyTargets.length > 0 && monthlyDoneCount === monthlyTargets.length;
+  const currentSummaryReport = companyReports[summaryMonth];
+
+  const handleSummaryFile = (file: File | null) => {
+    if (!file) return;
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    if (!SUMMARY_ACCEPT.split(',').includes(ext)) {
+      toast.error('PDF, HWP, DOC, DOCX 파일만 첨부할 수 있습니다'); return;
+    }
+    setCompanyReports({
+      ...companyReports,
+      [summaryMonth]: {
+        fileName: file.name, fileUrl: URL.createObjectURL(file), fileType: ext,
+        uploadedAt: new Date().toISOString().slice(0, 10),
+      },
+    });
+    toast.success(`${summaryMonth} 종합보고서가 첨부되었습니다`);
+  };
+
+  const removeSummaryReport = () => {
+    if (!confirm('첨부된 종합보고서를 삭제하시겠습니까?')) return;
+    const next = { ...companyReports };
+    delete next[summaryMonth];
+    setCompanyReports(next);
+    toast.success('첨부 파일이 삭제되었습니다');
   };
 
   return (
@@ -101,6 +161,17 @@ export default function PreventiveMaintenance() {
               <Trash2 className="h-4 w-4" />선택 삭제 ({selected.size})
             </Button>
           )}
+          <Button variant="outline" className="gap-1.5" onClick={() => setSummaryOpen(true)}>
+            <Building2 className="h-4 w-4" />협력사 종합보고서
+            {monthlyTargets.length > 0 && (
+              <Badge
+                variant="outline"
+                className={`ml-0.5 text-[10px] ${monthlyAllDone ? 'text-success border-success' : 'text-warning border-warning'}`}
+              >
+                {monthlyDoneCount}/{monthlyTargets.length}
+              </Badge>
+            )}
+          </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button className="gap-1"><Plus className="h-4 w-4" />점검 일정 등록</Button></DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -175,8 +246,8 @@ export default function PreventiveMaintenance() {
 
       <div className="grid grid-cols-3 gap-3 mb-4">
         <Card icon={<CalendarIcon className="h-4 w-4" />} label="예정/진행" value={totals.pending} accent="warning" />
-        <Card icon={<CalendarCheck className="h-4 w-4" />} label="합격" value={totals.pass} accent="success" />
-        <Card icon={<ClipboardList className="h-4 w-4" />} label="불합격" value={totals.fail} accent="destructive" />
+        <Card icon={<CalendarCheck className="h-4 w-4" />} label="확인" value={totals.confirmed} accent="success" />
+        <Card icon={<ClipboardList className="h-4 w-4" />} label="수정요청" value={totals.revision} accent="destructive" />
       </div>
 
       <section className="panel">
@@ -210,8 +281,13 @@ export default function PreventiveMaintenance() {
                   <td className="px-3 py-2 tabular-nums text-muted-foreground">{r.completedDate ?? '-'}</td>
                   <td className="px-3 py-2">{r.inspector ?? '-'}</td>
                   <td className="px-3 py-2">
-                    {r.result === 'pass' && <Badge className="bg-success text-success-foreground hover:bg-success">합격</Badge>}
-                    {r.result === 'fail' && <Badge variant="destructive">불합격</Badge>}
+                    {r.result === 'confirmed' && <Badge className="bg-success text-success-foreground hover:bg-success">확인</Badge>}
+                    {r.result === 'revision' && (
+                      <div>
+                        <Badge variant="destructive">수정요청</Badge>
+                        {r.deficiency && <div className="text-[10px] text-muted-foreground mt-0.5">미비점: {r.deficiency}</div>}
+                      </div>
+                    )}
                     {(r.result === 'pending' || !r.result) && <Badge variant="outline">대기</Badge>}
                   </td>
                   <td className="px-3 py-2">
@@ -222,8 +298,8 @@ export default function PreventiveMaintenance() {
                   <td className="px-3 py-2">
                     {(r.result === 'pending' || !r.result) && (
                       <div className="flex gap-1">
-                        <Button size="sm" variant="outline" className="h-6 text-[10px] text-success border-success" onClick={() => markComplete(r.id, 'pass')}>합격</Button>
-                        <Button size="sm" variant="outline" className="h-6 text-[10px] text-destructive border-destructive" onClick={() => markComplete(r.id, 'fail')}>불합격</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px] text-success border-success" onClick={() => markConfirmed(r.id)}>확인</Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px] text-destructive border-destructive" onClick={() => openRevisionNote(r.id)}>수정요청</Button>
                       </div>
                     )}
                   </td>
@@ -264,8 +340,8 @@ export default function PreventiveMaintenance() {
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">대기</SelectItem>
-                      <SelectItem value="pass">합격</SelectItem>
-                      <SelectItem value="fail">불합격</SelectItem>
+                      <SelectItem value="confirmed">확인</SelectItem>
+                      <SelectItem value="revision">수정요청</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -278,6 +354,12 @@ export default function PreventiveMaintenance() {
                   <Input type="date" value={editing.completedDate ?? ''} onChange={(e) => setEditing({ ...editing, completedDate: e.target.value })} />
                 </div>
               </div>
+              {editing.result === 'revision' && (
+                <div>
+                  <Label>미비점</Label>
+                  <Textarea rows={2} value={editing.deficiency ?? ''} onChange={(e) => setEditing({ ...editing, deficiency: e.target.value })} placeholder="미비점: " />
+                </div>
+              )}
               <div>
                 <Label>담당자</Label>
                 <Input value={editing.inspector ?? ''} onChange={(e) => setEditing({ ...editing, inspector: e.target.value })} />
@@ -291,6 +373,75 @@ export default function PreventiveMaintenance() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditing(null)}>닫기</Button>
             <Button onClick={saveEdit}>저장</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 수정요청 — 미비점 입력 팝업 */}
+      <Dialog open={!!revisionFor} onOpenChange={(o) => !o && setRevisionFor(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>수정요청</DialogTitle></DialogHeader>
+          <div className="py-2">
+            <Label>미비점</Label>
+            <Textarea
+              rows={3}
+              autoFocus
+              value={deficiencyNote}
+              onChange={(e) => setDeficiencyNote(e.target.value)}
+              placeholder="미비점: "
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevisionFor(null)}>취소</Button>
+            <Button variant="destructive" onClick={submitRevision}>수정요청 등록</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 협력사 종합보고서 — 전체 개소 첨부문서 */}
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>협력사 종합보고서</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <Label>대상 월</Label>
+              <Input type="month" value={summaryMonth} onChange={(e) => setSummaryMonth(e.target.value)} />
+            </div>
+            <div className={`text-xs rounded-md p-2 ${monthlyAllDone ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}`}>
+              {monthlyTargets.length === 0
+                ? `${summaryMonth} 월간점검 일정이 없습니다`
+                : monthlyAllDone
+                  ? `${summaryMonth} 월간점검 ${monthlyTargets.length}개소 모두 완료되었습니다`
+                  : `${summaryMonth} 월간점검 ${monthlyDoneCount}/${monthlyTargets.length}개소 완료 — ${monthlyTargets.length - monthlyDoneCount}개소 미완료`}
+            </div>
+
+            {currentSummaryReport ? (
+              <div className="border rounded-md p-3 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{currentSummaryReport.fileName}</div>
+                  <div className="text-[11px] text-muted-foreground">첨부일 {currentSummaryReport.uploadedAt} · {currentSummaryReport.fileType.replace('.', '').toUpperCase()}</div>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button size="icon" variant="outline" className="h-8 w-8" asChild>
+                    <a href={currentSummaryReport.fileUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
+                  </Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8 text-destructive border-destructive" onClick={removeSummaryReport}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <Label className="text-[11px] text-muted-foreground">협력사 작성 문서 첨부 (PDF · HWP · DOC · DOCX) — 첨부물이 보고서 본문이 됩니다</Label>
+                <label className="mt-1 flex items-center justify-center gap-2 border-2 border-dashed rounded-md py-6 cursor-pointer hover:bg-muted/40 text-xs text-muted-foreground">
+                  <Upload className="h-4 w-4" />파일 선택 또는 드래그하여 업로드
+                  <input type="file" accept={SUMMARY_ACCEPT} className="hidden" onChange={(e) => handleSummaryFile(e.target.files?.[0] ?? null)} />
+                </label>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSummaryOpen(false)}>닫기</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

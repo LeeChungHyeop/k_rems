@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useScope } from '@/components/ScopeContext';
 import {
-  PLANTS, ENERGY_LABEL, getPlantRevenueBreakdown, getPlantCostBreakdown,
+  PLANTS, ENERGY_LABEL, getPlantCostBreakdown,
   PRICE, COST_CATEGORY_KEYS, COST_CATEGORY_LABEL, CostCategoryKey,
   getPlantPeriodRow, getPlantPrev3Avg,
 } from '@/data/mockData';
@@ -34,7 +34,7 @@ const exportCSV = (rows: any[], name: string) => {
 // ============================================================================
 // 매출 관리
 // ============================================================================
-type SalesSortKey = 'name' | 'type' | 'cap' | 'salesMWh' | 'smp' | 'rec' | 'fund' | 'total';
+type SalesSortKey = 'name' | 'type' | 'cap' | 'salesMWh' | 'smp' | 'rec' | 'total';
 
 export function SalesManagement() {
   const { scope } = useScope();
@@ -53,11 +53,8 @@ export function SalesManagement() {
     const salesMWh = periodRows.reduce((s, r) => s + r.energy, 0);
     const smp = periodRows.reduce((s, r) => s + r.smp, 0);
     const rec = periodRows.reduce((s, r) => s + r.rec, 0);
-    // fund (기반기금) — use existing breakdown ratio scaled by months
-    const single = getPlantRevenueBreakdown(p.id);
-    const fund = single.fundRevenue * months.length;
-    const total = smp + rec + fund;
-    return { plant: p, salesMWh, smp, rec, fund, total, periodRows };
+    const total = smp + rec;
+    return { plant: p, salesMWh, smp, rec, total, periodRows };
   }), [sorted, months]);
 
   const visibleRows = useMemo(() => applySort(rows, sort, (r, k) => {
@@ -68,7 +65,6 @@ export function SalesManagement() {
       case 'salesMWh': return r.salesMWh;
       case 'smp': return r.smp;
       case 'rec': return r.rec;
-      case 'fund': return r.fund;
       case 'total': return r.total;
     }
   }), [rows, sort]);
@@ -97,9 +93,9 @@ export function SalesManagement() {
       <div className="mb-3 flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold">매출 관리</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">SMP+REC+기반기금 기반 매출 (단가 SMP {PRICE.SMP}원/kWh · REC {PRICE.REC}원/kWh)</p>
+          <p className="text-xs text-muted-foreground mt-0.5">SMP+REC 기반 매출 (단가 SMP {PRICE.SMP}원/kWh · REC {PRICE.REC}원/kWh)</p>
         </div>
-        <Button size="sm" variant="outline" className="gap-1 h-9" onClick={() => exportCSV(rows.map(r => ({ 발전소: r.plant.name, 발전원: ENERGY_LABEL[r.plant.type], 송전량MWh: Math.round(r.salesMWh), SMP: r.smp, REC: r.rec, 기반기금: r.fund, 총매출: r.total })), '매출관리.csv')}>
+        <Button size="sm" variant="outline" className="gap-1 h-9" onClick={() => exportCSV(rows.map(r => ({ 발전소: r.plant.name, 발전원: ENERGY_LABEL[r.plant.type], 송전량MWh: Math.round(r.salesMWh), SMP: r.smp, REC: r.rec, 총매출: r.total })), '매출관리.csv')}>
           <Download className="h-3.5 w-3.5" />CSV 내려받기
         </Button>
       </div>
@@ -124,7 +120,6 @@ export function SalesManagement() {
                 <SortableTh label="송전량(MWh)" k="salesMWh" state={sort} onSort={(k) => setSort(nextSort(sort, k))} align="right" />
                 <SortableTh label="SMP" k="smp" state={sort} onSort={(k) => setSort(nextSort(sort, k))} align="right" />
                 <SortableTh label="REC" k="rec" state={sort} onSort={(k) => setSort(nextSort(sort, k))} align="right" />
-                <SortableTh label="기반기금" k="fund" state={sort} onSort={(k) => setSort(nextSort(sort, k))} align="right" />
                 <SortableTh label="총매출" k="total" state={sort} onSort={(k) => setSort(nextSort(sort, k))} align="right" />
               </tr>
             </thead>
@@ -141,7 +136,6 @@ export function SalesManagement() {
                   <td className="px-3 py-2 text-right tabular-nums">{fmt(Math.round(r.salesMWh))}</td>
                   <td className="px-3 py-2 text-right tabular-nums">₩{fmt(Math.round(r.smp))}</td>
                   <td className="px-3 py-2 text-right tabular-nums">₩{fmt(Math.round(r.rec))}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">₩{fmt(Math.round(r.fund))}</td>
                   <td className="px-3 py-2 text-right tabular-nums font-bold text-primary">₩{fmt(Math.round(r.total))}</td>
                 </tr>
               ))}
